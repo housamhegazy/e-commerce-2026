@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "checkJs": false, // ✅ دي أهم واحدة! حولناها لـ false عشان يقفل فحص الـ Types
+    "jsx": "react-jsx",
+    "paths": {
+    "@/*": ["./src/*"]
+  },
+    "resolveJsonModule": true,
+    "module": "esnext",
+    "target": "es2020",
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist", 
+    "build"
+  ]
+}

@@ -1,6 +1,5 @@
 require("dotenv").config();
 const mongoose = require("mongoose");
-const bcrypt = require("bcryptjs");
 
 const UserSchema = new mongoose.Schema(
   {
@@ -20,20 +19,5 @@ const UserSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
-
-// Middleware لتشفير كلمة المرور قبل حفظ المستخدم
-UserSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) {
-    return next();
-  }
-  const salt = await bcrypt.getSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
-  next();
-});
-
-// دالة لمقارنة كلمة المرور
-UserSchema.methods.matchPassword = async function (enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
-};
 
 module.exports = mongoose.model("User", UserSchema);

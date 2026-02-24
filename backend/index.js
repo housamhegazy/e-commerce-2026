@@ -17,9 +17,12 @@ app.use(
     credentials: true,
   }),
 ); // تفعيل CORS للسماح لـ frontend (الذي يعمل على منفذ مختلف) بالاتصال بـ backend
+const userRoute = require("./routes/user")
 app.get("/", (req, res) => {
   res.send("Hello World!");
 });
+
+app.use("/api/user",userRoute)
 
 const mongoURI = process.env.MONGODB_URI;
 

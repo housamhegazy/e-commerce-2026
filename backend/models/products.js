@@ -12,7 +12,11 @@ const ProductsSchema = new mongoose.Schema(
         public_id: { type: String, required: true },
       },
     ],
-
+    createdBy: { 
+      type: mongoose.Schema.Types.ObjectId, 
+      ref: "User", 
+      required: true 
+    },
     ratings: [
       {
         userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },

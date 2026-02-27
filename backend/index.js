@@ -9,28 +9,32 @@ const port = process.env.PORT || 3000;
 
 // ********************** Middleware **********************
 
-app.use(express.json()); // عشان السيرفر يفهم الـ JSON اللي جاي من الفرونت
-app.use(cookieParser()); // ضروري لقراءة التوكن من الكوكيز
 app.use(
   cors({
     origin: process.env.FRONTEND_URL,
     credentials: true,
   }),
-); // تفعيل CORS للسماح لـ frontend (الذي يعمل على منفذ مختلف) بالاتصال بـ backend
+); 
 const userRoute = require("./routes/user")
+const productsRoute = require("./routes/products")
+const cartRoute = require("./routes/cart")
+
 app.get("/", (req, res) => {
-  res.send("Hello World!");
+  res.send("E-commerce Website!");
 });
 
+app.use(express.json()); 
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 app.use("/api/user",userRoute)
-
+app.use("/api/products",productsRoute)
+app.use("/api/cart",cartRoute)
 const mongoURI = process.env.MONGODB_URI;
 
 mongoose
   .connect(mongoURI)
   .then(() => {
     console.log("✅ Connected to MongoDB!");
-    // مش هنشغل السيرفر إلا لما الداتابيز تشبك
     app.listen(port, () => {
       console.log(`🚀 Server is running on port ${port}`);
     });

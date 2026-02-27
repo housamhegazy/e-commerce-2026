@@ -3,7 +3,7 @@ const router = express.Router();
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const User = require("../models/user.js");
-const { AuthMiddleware } = require("../middleware/AuthMiddleware.js");
+const { AuthMiddleware,authorize } = require("../middleware/AuthMiddleware.js");
 
 function setAuthCookie(res, token) {
   // إعداد الكوكيز مع الخيارات المناسبة
@@ -34,9 +34,13 @@ router.post("/register", async (req, res) => {
     await NewUser.save();
 
     // إنشاء وتوقيع JWT
-    const token = jwt.sign({ id: NewUser._id,role: NewUser.role }, process.env.JWT_SECRET, {
-      expiresIn: process.env.JWT_EXPIRES_IN,
-    });
+    const token = jwt.sign(
+      { id: NewUser._id, role: NewUser.role },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: process.env.JWT_EXPIRES_IN,
+      },
+    );
     setAuthCookie(res, token);
     res.status(201).json({
       message: "user registered successfully",
@@ -63,7 +67,7 @@ router.post("/login", async (req, res) => {
     if (!isPasswordValid) {
       return res.status(400).json({ message: "Invalid email or password" });
     }
-     // إنشاء وتوقيع JWT
+    // إنشاء وتوقيع JWT
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET,
@@ -73,17 +77,40 @@ router.post("/login", async (req, res) => {
     );
     setAuthCookie(res, token);
 
-     res.status(200).json({
+    res.status(200).json({
       message: "Login successful",
       token,
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role 
       },
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
+router.get("/profile", AuthMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await User.findById(userId).select("-password");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.post("/logout",AuthMiddleware,async(req,res)=>{
+   res.clearCookie("token", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
+    path: "/"
+  });
+  res.status(200).json({ message: "Logged out successfully" });
+})
 module.exports = router;

@@ -112,4 +112,34 @@ router.get("/my-cart", AuthMiddleware, async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+
+router.delete("/delete-product/:productId", AuthMiddleware, async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const userId = req.user.id;
+
+    // 1. نبحث عن سلة المستخدم
+    let cart = await Cart.findOne({ userId });
+    if (!cart) {
+      return res.status(404).json({ message: "Cart not found" });
+    }
+
+    // 2. نمسح المنتج من مصفوفة items باستخدام $pull
+    // الميزة هنا إننا بنمسح المنتج ده بس من جوه السلة
+    cart = await Cart.findOneAndUpdate(
+      { userId },
+      { $pull: { items: { productId: productId } } },
+      { new: true } // عشان نرجع السلة بعد التعديل
+    );
+
+    res.status(200).json({ 
+      message: "Product removed from cart successfully", 
+      cart 
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+
 module.exports = router;

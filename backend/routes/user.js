@@ -113,4 +113,7 @@ router.post("/logout",AuthMiddleware,async(req,res)=>{
   });
   res.status(200).json({ message: "Logged out successfully" });
 })
+
+
+
 module.exports = router;

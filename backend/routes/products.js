@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Product = require("../models/products.js");
+const User = require("../models/user.js");
 const {
   AuthMiddleware,
   authorize,
@@ -224,6 +225,7 @@ router.get(
     }
   },
 );
+//product details
 router.get("/product-details/:productId", async (req, res) => {
   try {
     const productId = req.params.productId;
@@ -239,4 +241,136 @@ router.get("/product-details/:productId", async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+
+//add products to user wishlist
+router.post("/wishlist/:productId", AuthMiddleware, async (req, res) => {
+  try {
+    const productId = req.params.productId;
+    const userId = req.user.id;
+    const user = await User.findById(userId);
+    if (user.wishlist.includes(productId)) {
+      // لو موجود يشيله (Toggle)
+      user.wishlist.pull(productId);
+      await user.save();
+      return res.status(200).json({ message: "Removed from wishlist" });
+    }
+    user.wishlist.push(productId);
+    await user.save();
+    res.status(200).json({ message: "Added to wishlist" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+//get all user wishlist products
+router.get("/wishlist", AuthMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await User.findById(userId)
+      .populate("wishlist", "title description category stock price images")
+      .select("wishlist");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.status(200).json(user.wishlist);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.put("/rate-product/:productId", AuthMiddleware, async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const { star, comment } = req.body;
+    const userId = req.user.id;
+
+    // 1. التحقق من صحة عدد النجوم (من 1 لـ 5)
+    if (!star || star < 1 || star > 5) {
+      return res
+        .status(400)
+        .json({ message: "Please provide a rating between 1 and 5 stars" });
+    }
+
+    const product = await Product.findById(productId);
+    if (!product) return res.status(404).json({ message: "Product not found" });
+
+    // 2. هل المستخدم ده قيم المنتج ده قبل كدة؟ (عشان ميكررش تقييمه)
+    const alreadyRated = product.ratings.find(
+      (r) => r.userId.toString() === userId.toString(),
+    );
+
+    if (alreadyRated) {
+      // لو قيم قبل كدة، نحدث تقييمه القديم
+      await Product.updateOne(
+        { _id: productId, "ratings.userId": userId },
+        {
+          $set: { "ratings.$.star": star, "ratings.$.comment": comment },
+        },
+      );
+    } else {
+      // لو أول مرة، نضيف تقييم جديد للمصفوفة
+      product.ratings.push({ userId, star, comment });
+      await product.save();
+    }
+
+    // 3. الخطوة السحرية: إعادة حساب متوسط التقييمات
+    const updatedProduct = await Product.findById(productId);
+    const totalRatings = updatedProduct.ratings.length;
+    const sumStars = updatedProduct.ratings.reduce(
+      (acc, item) => item.star + acc,
+      0,
+    );
+
+    // تحديث الـ averageRating في الداتابيز
+    updatedProduct.averageRating = (sumStars / totalRatings).toFixed(1); // رقم واحد بعد العلامة
+    await updatedProduct.save();
+
+    res.status(200).json({
+      message: "Rating submitted successfully",
+      averageRating: updatedProduct.averageRating,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+//delete rate
+router.delete("/rate-product/:productId", AuthMiddleware, async (req, res) => {
+  try {
+    const productId = req.params.productId;
+    const userId = req.user.id;
+    // 1. استخدام $pull لمسح التقييم الخاص بالمستخدم ده فقط من المصفوفة
+    const product = await Product.findByIdAndUpdate(
+      productId,
+      {
+        $pull: { ratings: { userId: userId } },
+      },
+      { new: true }, // يرجع المنتج بعد التعديل
+    );
+
+    if (!product) return res.status(404).json({ message: "Product not found" });
+
+    // 2. إعادة حساب المتوسط بعد المسح
+    const totalRatings = product.ratings.length;
+    let newAverage = 0;
+
+    if (totalRatings > 0) {
+      const sumStars = product.ratings.reduce(
+        (acc, item) => item.star + acc,
+        0,
+      );
+      newAverage = (sumStars / totalRatings).toFixed(1);
+    }
+    // 3. تحديث المتوسط في الداتابيز
+    product.averageRating = newAverage;
+    await product.save();
+    res.status(200).json({
+      message: "Rating deleted successfully",
+      averageRating: product.averageRating,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = router;

@@ -67,7 +67,7 @@ router.post("/add-to-cart/:productId", AuthMiddleware, async (req, res) => {
 router.put("/update-quantity/:productId", AuthMiddleware, async (req, res) => {
   try {
     const { productId } = req.params;
-    const quantity  = Number(req.body.quantity); // بنبعت الكمية الجديدة (مثلاً 5)
+    const quantity  = Number(req.body.quantity); 
     const userId = req.user.id;
 
     if (!quantity || quantity < 1) {
@@ -82,7 +82,6 @@ router.put("/update-quantity/:productId", AuthMiddleware, async (req, res) => {
     );
 
     if (itemIndex > -1) {
-      // هنا بنحدث الرقم مباشرة بالقيمة اللي جاية من الـ Input
       cart.items[itemIndex].quantity = quantity;
       await cart.save();
       res.status(200).json({ message: "Quantity updated", cart });

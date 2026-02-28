@@ -136,7 +136,8 @@ router.put(
 );
 //delete product by admin
 router.delete(
-  "/delete-product/:productId",AuthMiddleware,
+  "/delete-product/:productId",
+  AuthMiddleware,
   authorize("admin"),
   async (req, res) => {
     try {
@@ -223,5 +224,19 @@ router.get(
     }
   },
 );
-
+router.get("/product-details/:productId", async (req, res) => {
+  try {
+    const productId = req.params.productId;
+    const product = await Product.findById(productId).populate(
+      "createdBy",
+      "name email",
+    );
+    if (!product) {
+      return res.status(4000).json({ message: "no product found" });
+    }
+    res.status(200).json(product);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 module.exports = router;

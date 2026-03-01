@@ -7,11 +7,15 @@ const UserSchema = new mongoose.Schema(
     name: { type: String, required: true },
     email: { type: String, unique: true, required: true, lowercase: true },
     password: { type: String, required: true },
-    address: {
-      city: String,
-      street: String,
-      zipCode: String,
-    },
+    addresses: [
+      {
+        title: { type: String, default: "Home" }, // مثلاً: Home, Office
+        city: { type: String, required: true },
+        street: { type: String, required: true },
+        zipCode: String,
+        isDefault: { type: Boolean, default: false } // عشان يحدد عنوان أساسي للشحن
+      }
+    ],
     role: { type: String, enum: ["user", "admin"], default: "user" }, // استخدام enum أفضل للأمان
     wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: "Product" }], // التصحيح هنا
   },

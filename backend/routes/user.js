@@ -3,7 +3,10 @@ const router = express.Router();
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const User = require("../models/user.js");
-const { AuthMiddleware,authorize } = require("../middleware/AuthMiddleware.js");
+const {
+  AuthMiddleware,
+  authorize,
+} = require("../middleware/AuthMiddleware.js");
 
 function setAuthCookie(res, token) {
   // إعداد الكوكيز مع الخيارات المناسبة
@@ -84,7 +87,7 @@ router.post("/login", async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role 
+        role: user.role,
       },
     });
   } catch (error) {
@@ -104,16 +107,104 @@ router.get("/profile", AuthMiddleware, async (req, res) => {
   }
 });
 
-router.post("/logout",AuthMiddleware,async(req,res)=>{
-   res.clearCookie("token", {
+router.post("/logout", AuthMiddleware, async (req, res) => {
+  res.clearCookie("token", {
     httpOnly: true,
     secure: true,
     sameSite: "none",
-    path: "/"
+    path: "/",
   });
   res.status(200).json({ message: "Logged out successfully" });
-})
+});
 
+// add address
+router.post("/add-address", AuthMiddleware, async (req, res) => {
+  try {
+    const { title, city, street, zipCode, isDefault } = req.body;
+    const userId = req.user.id;
+    if (isDefault) {
+      await User.updateOne(
+        { _id: userId },
+        { $set: { "addresses.$[].isDefault": false } }, // علامة $[] بتعدل كل العناصر في المصفوفة
+      );
+    }
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { $push: { addresses: { title, city, street, zipCode, isDefault } } },
+      { new: true },
+    );
+    res.status(200).json(user.addresses);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 
+//update address
+router.put("/update-address/:addressId", AuthMiddleware, async (req, res) => {
+  try {
+    const addressId = req.params.addressId;
+    const userId = req.user.id;
+    const { title, city, street, zipCode, isDefault } = req.body;
+    if (isDefault) {
+      await User.updateOne(
+        { _id: userId },
+        { $set: { "addresses.$[].isDefault": false } }, // علامة $[] بتعدل كل العناصر في المصفوفة
+      );
+    }
+    // البحث عن المستخدم وتعديل العنوان الذي يطابق الـ ID
+    const user = await User.findOneAndUpdate(
+      { _id: userId, "addresses._id": addressId }, // البحث باليوزر وبالعنوان المحدد
+      {
+        $set: {
+          "addresses.$.title": title,
+          "addresses.$.city": city,
+          "addresses.$.street": street,
+          "addresses.$.zipCode": zipCode,
+          "addresses.$.isDefault": isDefault,
+        },
+      },
+      { new: true, runValidators: true }, // إرجاع البيانات الجديدة وتفعيل التحقق
+    );
 
+    if (!user) {
+      return res.status(404).json({ message: "Address or User not found" });
+    }
+
+    res.status(200).json({
+      message: "Address updated successfully",
+      addresses: user.addresses,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// delete address 
+router.delete("/delete-address/:addressId", AuthMiddleware, async (req, res) => {
+  try {
+    const { addressId } = req.params;
+    const userId = req.user.id;
+
+    // استخدام $pull لمسح العنوان المحدد من مصفوفة العناوين
+    const user = await User.findByIdAndUpdate(
+      userId,
+      {
+        $pull: { addresses: { _id: addressId } }
+      },
+      { new: true } // لإرجاع بيانات المستخدم بعد الحذف
+    );
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({ 
+      message: "Address deleted successfully", 
+      addresses: user.addresses 
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 module.exports = router;

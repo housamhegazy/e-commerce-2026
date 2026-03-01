@@ -373,4 +373,5 @@ router.delete("/rate-product/:productId", AuthMiddleware, async (req, res) => {
   }
 });
 
+
 module.exports = router;

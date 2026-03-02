@@ -26,7 +26,7 @@ const OrdersSchema = new mongoose.Schema({
   status: { type: String, default: "Pending" }, // Pending, Shipped, Delivered
   orderNumber: {
     type: String,
-    unique: true, // عشان ميتكررش أبداً
+    unique: true, 
     required: true
   },
 }, { timestamps: true });

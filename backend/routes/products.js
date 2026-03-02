@@ -13,6 +13,7 @@ const {
   upload,
 } = require("../utils/cloudinary.js");
 
+//create product (only admin)
 router.post(
   "/create-product",
   AuthMiddleware,
@@ -229,12 +230,11 @@ router.get(
 router.get("/product-details/:productId", async (req, res) => {
   try {
     const productId = req.params.productId;
-    const product = await Product.findById(productId).populate(
-      "createdBy",
-      "name email",
-    );
+    const product = await Product.findById(productId)
+      .populate("createdBy", "name email")
+      .lean();
     if (!product) {
-      return res.status(4000).json({ message: "no product found" });
+      return res.status(404).json({ message: "no product found" });
     }
     res.status(200).json(product);
   } catch (error) {
@@ -252,11 +252,16 @@ router.post("/wishlist/:productId", AuthMiddleware, async (req, res) => {
       // لو موجود يشيله (Toggle)
       user.wishlist.pull(productId);
       await user.save();
-      return res.status(200).json({ message: "Removed from wishlist" });
+      return res
+        .status(200)
+        .json({ message: "Removed from wishlist", wishlist: user.wishlist });
     }
     user.wishlist.push(productId);
     await user.save();
-    res.status(200).json({ message: "Added to wishlist" });
+    res.status(200).json({
+      message: "Added",
+      wishlist: user.wishlist,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -372,6 +377,5 @@ router.delete("/rate-product/:productId", AuthMiddleware, async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
-
 
 module.exports = router;

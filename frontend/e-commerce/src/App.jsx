@@ -1,8 +1,10 @@
 import { Navigate, RouterProvider, createBrowserRouter } from "react-router";
 import ErrorPage from "./pages/erroePage";
-import Home from "./pages/home/home";
+import HomeProducts from "./pages/home/home";
 import Root from "./root";
-
+import ProductDetails from "./pages/productDetails/productDetails"
+import Login from "./pages/login/login";
+import Register from "./pages/register/register";
 function App() {
   const router = createBrowserRouter([
     {
@@ -12,7 +14,19 @@ function App() {
       children: [
         {
           index: true,
-          element: <Home />,
+          element: <HomeProducts />,
+        },
+        {
+          path: "/register",
+          element: <Register />,
+        },
+        {
+          path: "/login",
+          element: <Login />,
+        },
+        {
+          path: "/product/:id",
+          element: <ProductDetails />,
         },
         {
           path: "*",

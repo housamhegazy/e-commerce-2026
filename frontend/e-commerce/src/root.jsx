@@ -1,6 +1,16 @@
 import { Outlet } from "react-router";
-
+import { useSelector } from "react-redux";
+import LoadingPage from "./pages/loadingPage";
+import { useGetUserByNameQuery } from "./Redux/user/userApi";
 const Root = () => {
+
+    // =================== loading state from redux ===================
+const { isLoadingAuth } = useSelector((state) => state.auth);
+  const { isLoading: userLoading } = useGetUserByNameQuery();
+  // loading whene userloading
+  if (isLoadingAuth || userLoading) {
+    return <LoadingPage />;
+  }
 
   return (
     <div

@@ -1,25 +1,30 @@
 import { configureStore } from "@reduxjs/toolkit";
-// Or from '@reduxjs/toolkit/query/react'
 import { setupListeners } from "@reduxjs/toolkit/query";
-import authReducer from "./user/authSlice"; // <--- استيراد authReducer
+import authReducer from "./user/authSlice"; 
 import { userApi } from "./user/userApi";
 import { productApi } from "./products/productApi";
+
+// 👇 الخطأ كان هنا.. لازم تعمل Import للريديوسر بتاع الكارت
+import cartReducer from "./products/cartSlice"; 
+
 export const store = configureStore({
   reducer: {
-    // Add the generated reducer as a specific top-level slice
+    // 1. السلايس المسؤول عن الكارت والبيانات المحلية
+    // تأكد إن الاسم 'products' هو اللي بتستخدمه في useSelector((state) => state.products)
+    products: cartReducer, 
+
+    // 2. الريديوسرز الخاصة بالـ APIs (للكاش)
     [userApi.reducerPath]: userApi.reducer,
-    [productApi.reducerPath]:productApi.reducer,
-    auth: authReducer, //خاصه بحالة المستخدم
-    // theme: themeReducer, // theme
+    [productApi.reducerPath]: productApi.reducer,
+
+    // 3. السلايس الخاص بالملف الشخصي
+    auth: authReducer, 
   },
-  // Adding the api middleware enables caching, invalidation, polling,
-  // and other useful features of `rtk-query`.
+  
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()
       .concat(userApi.middleware)
-      .concat(productApi.middleware)
+      .concat(productApi.middleware),
 });
 
-// optional, but required for refetchOnFocus/refetchOnReconnect behaviors
-// see `setupListeners` docs - takes an optional callback as the 2nd arg for customization
 setupListeners(store.dispatch);

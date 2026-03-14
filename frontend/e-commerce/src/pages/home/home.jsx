@@ -3,7 +3,6 @@ import ProductCard from "./ProductCard";
 import { useGetProductsQuery } from "../../Redux/products/productApi";
 const HomeProducts = () => {
   const { data: products, isLoading, isError, error } = useGetProductsQuery();
-
   if (isLoading) {
     return (
       <div className="container my-5 text-center">
@@ -23,7 +22,6 @@ const HomeProducts = () => {
       </div>
     );
   }
-  console.log(products.products);
   return (
     <div className="container my-5">
       <h2 className="text-center mb-4 fw-light text-uppercase tracking-wider">

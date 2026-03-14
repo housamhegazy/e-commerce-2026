@@ -38,7 +38,7 @@ export const userApi = createApi({
     //signout
     signOut: builder.mutation({
       query: () => ({
-        url: "/api/users/logout",
+        url: "/api/user/logout",
         method: "POST",
       }),
       invalidatesTags: ["User"],

@@ -1,9 +1,27 @@
-import React from 'react';
+import React, { useState } from "react";
 import { Link } from 'react-router-dom';
+import { useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
+import { addToCart } from "../../Redux/products/cartSlice";
 
 const ProductCard = ({ product, onAddToCart }) => {
+  const dispatch = useDispatch();
   const { title, price, images, averageRating, _id, stock } = product;
   const thumbnail = images[0]?.url || 'https://via.placeholder.com/300';
+
+  const handleAddToCart = () => {
+      // بنجهز كائن جديد فيه بيانات المنتج + الكمية المختارة من الـ state المحلي
+      dispatch(addToCart({
+      id: _id,        // تأكد إنها _id زي ما إنت معرفها فوق
+      title,
+      price,
+      images,
+      quantity: 1     // بما إننا بنضيف من الكارد بره، بنزود 1 علطول
+    }));
+      
+      // اختياري: تنبيه بسيط لليوزر
+      alert(`Added items to cart!`);
+    };
 
   return (
     <div className="col-md-3 col-sm-6 mb-4">
@@ -44,7 +62,7 @@ const ProductCard = ({ product, onAddToCart }) => {
               <button 
                 className="btn btn-sm fw-bold shadow-sm"
                 style={{ backgroundColor: '#f6ad55', color: '#1a202c', border: 'none' }}
-                onClick={() => onAddToCart(product)}
+                onClick={() => handleAddToCart()}
                 disabled={stock === 0}
               >
                 <i className="bi bi-cart-plus me-1"></i> Add to Cart

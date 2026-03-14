@@ -2,6 +2,7 @@ import { Outlet } from "react-router";
 import { useSelector } from "react-redux";
 import LoadingPage from "./pages/loadingPage";
 import { useGetUserByNameQuery } from "./Redux/user/userApi";
+import Navbar from "./components/Navbar";
 const Root = () => {
 
     // =================== loading state from redux ===================
@@ -32,13 +33,13 @@ const { isLoadingAuth } = useSelector((state) => state.auth);
           zIndex: "1000",
         }}
       >
-      {/* <Navbar /> */}
+      <Navbar />
       </div>
 
       <div
         style={{
           width: "100%",
-          maxWidth: "1500px",
+          maxWidth: "1200px",
           margin: "0 auto",
           minHeight: `calc(100vh - 64px)`,
           display: "flex", // تأكيد الـ flex هنا

@@ -283,6 +283,7 @@ router.get("/wishlist", AuthMiddleware, async (req, res) => {
   }
 });
 
+//add review
 router.put("/rate-product/:productId", AuthMiddleware, async (req, res) => {
   try {
     const { productId } = req.params;

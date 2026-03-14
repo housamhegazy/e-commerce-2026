@@ -4,24 +4,42 @@ import { useParams } from "react-router-dom";
 import {
   useGetProductDetailsQuery,
   useAddToWishlistMutation,
+  useAddReviewMutation,
 } from "../../Redux/products/productApi.js";
 import { useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
+import { addToCart } from "../../Redux/products/cartSlice";
 
 const ProductDetails = () => {
+  const dispatch = useDispatch();
   const { id } = useParams();
-  // هنا data هترجع هي الـ product مباشرة بسبب الـ transformResponse
   const { data: product, isLoading, isError } = useGetProductDetailsQuery(id);
   const [addToWishlist, { isLoading: isWishlisting }] =
     useAddToWishlistMutation();
-const { user } = useSelector((state) => state.auth);
+  const [addreview, { isLoading: loadingReview, isError: errorReview }] = useAddReviewMutation();
+
+  const { user } = useSelector((state) => state.auth);
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   //=============================================
   const [userRating, setUserRating] = useState(5);
   const [comment, setComment] = useState("");
   //=============================================
-  // const [isWishlisted, setIsWishlisted] = useState(false);
   const navigate = useNavigate();
+
+const handleAddToCart = () => {
+    // بنجهز كائن جديد فيه بيانات المنتج + الكمية المختارة من الـ state المحلي
+    const productWithQuantity = {
+      ...product,
+      quantity: quantity // العدد اللي اليوزر اختاره من الـ +/-
+    };
+
+    // بنبعت الكائن ده للسلايس
+    dispatch(addToCart(productWithQuantity));
+    
+    // اختياري: تنبيه بسيط لليوزر
+    alert(`Added ${quantity} items to cart!`);
+  };
   if (isLoading)
     return (
       <div className="d-flex justify-content-center align-items-center vh-100 text-white">
@@ -40,7 +58,23 @@ const { user } = useSelector((state) => state.auth);
   // add to wishlist
   const addToWishListFuc = async () => {
     try {
-       await addToWishlist(id).unwrap();
+      await addToWishlist(id).unwrap();
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  //add review
+  const addReviewFunc = async () => {
+    try {
+      await addreview({
+        productId: id,
+        star: userRating,
+        comment: comment,
+      }).unwrap();
+      setComment(""); 
+    setUserRating(5);
+      console.log("review added");
     } catch (error) {
       console.log(error);
     }
@@ -191,6 +225,7 @@ const { user } = useSelector((state) => state.auth);
               <button
                 className="btn btn-warning btn-lg px-5 fw-bold"
                 style={{ backgroundColor: "#f6ad55" }}
+                onClick={handleAddToCart}
               >
                 Add to Cart
               </button>
@@ -237,14 +272,16 @@ const { user } = useSelector((state) => state.auth);
 
             <div className="d-flex align-items-baseline mb-1">
               <span className="display-4 fw-bold text-white me-2">
-                {product.averageRating}
+                {Number(product?.averageRating) || 0}
               </span>
               <span className="text-secondary">out of 5</span>
             </div>
 
             <div className="text-warning fs-5 mb-3">
-              {"★".repeat(Math.floor(product.averageRating))}
-              {"☆".repeat(5 - Math.floor(product.averageRating))}
+              {"★".repeat(Math.max(0, Math.floor(product?.averageRating || 0)))}
+              {"☆".repeat(
+                Math.max(0, 5 - Math.floor(product?.averageRating || 0)),
+              )}
             </div>
 
             <p className="text-secondary small mb-4">
@@ -254,12 +291,11 @@ const { user } = useSelector((state) => state.auth);
 
             {/* أشرطة التقدم بتصميم الدارك مود */}
             {[5, 4, 3, 2, 1].map((star) => {
+              const allRatings = product?.ratings || [];
               const count =
-                product.ratings?.filter((r) => r.star === star).length || 0;
+                allRatings?.filter((r) => r.star === star).length || 0;
               const percentage =
-                product.ratings?.length > 0
-                  ? (count / product.ratings.length) * 100
-                  : 0;
+                allRatings.length > 0 ? (count / allRatings.length) * 100 : 0;
 
               return (
                 <div key={star} className="d-flex align-items-center mb-3">
@@ -327,12 +363,14 @@ const { user } = useSelector((state) => state.auth);
               ></textarea>
 
               <button
+                onClick={addReviewFunc}
                 className="btn btn-warning w-100 fw-bold py-2 shadow-sm border-0"
                 style={{
                   borderRadius: "8px",
                   backgroundColor: "#f6ad55",
                   color: "#1a202c",
                 }}
+                disabled={loadingReview}
               >
                 Post Review
               </button>

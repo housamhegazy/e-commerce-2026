@@ -8,8 +8,6 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
-  // const [login, { isLoading }] = useLoginMutation();
-
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
@@ -88,7 +86,7 @@ const Login = () => {
               </div>
 
               {/* Login Button */}
-              <button type="submit" className="btn btn-warning w-100 fw-bold py-3 mb-4 border-0 shadow-sm"
+              <button disabled={isLoading} type="submit" className="btn btn-warning w-100 fw-bold py-3 mb-4 border-0 shadow-sm"
                       style={{ backgroundColor: '#f6ad55', color: '#1a202c', borderRadius: '12px', transition: 'all 0.3s ease' }}>
                 Sign In
               </button>

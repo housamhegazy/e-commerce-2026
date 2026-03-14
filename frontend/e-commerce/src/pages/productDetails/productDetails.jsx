@@ -8,7 +8,10 @@ import {
 } from "../../Redux/products/productApi.js";
 import { useSelector } from "react-redux";
 import { useDispatch } from "react-redux";
+// 👇 استيراد الـ action creator الخاص بإضافة منتج للسلة
 import { addToCart } from "../../Redux/products/cartSlice";
+//send product with quantity to cart slice
+import { useAddToCartMutation } from "../../Redux/cart/cartApi.js";
 
 const ProductDetails = () => {
   const dispatch = useDispatch();
@@ -26,20 +29,40 @@ const ProductDetails = () => {
   const [comment, setComment] = useState("");
   //=============================================
   const navigate = useNavigate();
+//=============================================
+// if user logged in enable add to cart api function, otherwise use local state management
+const [addToCartApiFunc, { isLoading: isAddingToCart }] = useAddToCartMutation();
 
-const handleAddToCart = () => {
-    // بنجهز كائن جديد فيه بيانات المنتج + الكمية المختارة من الـ state المحلي
+// handle add to cart for both logged in and guest users
+const handleAddToCart = async () => {
+  // أولاً: لو المستخدم مسجل دخول، هنكلم السيرفر (API)
+  if (user) {
+    try {
+      await addToCartApiFunc({ 
+        productId: id, 
+        quantity: quantity 
+      }).unwrap();
+      
+      alert("Added to server cart successfully!");
+    } catch (err) {
+      console.error("Failed to add to API cart:", err);
+      alert("Something went wrong with the server.");
+    }
+  } 
+  
+  // ثانياً: لو مش مسجل دخول، هنستخدم الـ Redux Slice (localStorage)
+  else {
     const productWithQuantity = {
       ...product,
-      quantity: quantity // العدد اللي اليوزر اختاره من الـ +/-
+      id: id, // تأكد إن الـ ID مبعوت صح للسلايس
+      quantity: quantity
     };
 
-    // بنبعت الكائن ده للسلايس
     dispatch(addToCart(productWithQuantity));
-    
-    // اختياري: تنبيه بسيط لليوزر
-    alert(`Added ${quantity} items to cart!`);
-  };
+    alert(`Added ${quantity} items to local cart!`);
+  }
+};
+
   if (isLoading)
     return (
       <div className="d-flex justify-content-center align-items-center vh-100 text-white">

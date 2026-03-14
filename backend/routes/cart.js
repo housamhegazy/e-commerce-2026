@@ -12,6 +12,10 @@ router.post("/add-to-cart/:productId", AuthMiddleware, async (req, res) => {
   try {
     const productId = req.params.productId;
     const userId = req.user.id;
+    
+    // 👇 استلام الكمية من الـ body وتحديد 1 كقيمة افتراضية
+    // بنستخدم Number عشان نضمن إنها عملية حسابية مش نصية
+    const quantityToAdd = Number(req.body.quantity) || 1;
 
     // 1. التأكد من وجود المنتج
     const product = await Product.findById(productId);
@@ -22,14 +26,14 @@ router.post("/add-to-cart/:productId", AuthMiddleware, async (req, res) => {
     let cart = await Cart.findOne({ userId });
 
     if (!cart) {
-      // 2. لو السلة جديدة، بنضيف المنتج والكمية هتكون 1 تلقائياً من الـ Schema default
+      // 2. لو السلة جديدة، بنضيف المنتج بالكمية المطلوبة
       cart = new Cart({
         userId,
         items: [
           {
             productId,
             price: product.price,
-            // هنا مش محتاج تكتب quantity لأن الـ Schema فيه default: 1
+            quantity: quantityToAdd, // استخدم الكمية المستلمة
           },
         ],
       });
@@ -40,22 +44,23 @@ router.post("/add-to-cart/:productId", AuthMiddleware, async (req, res) => {
       );
 
       if (itemIndex > -1) {
-        // 4. المنتج موجود فعلاً -> نزود الكمية بـ 1 فقط
-        cart.items[itemIndex].quantity += 1;
+        // 4. المنتج موجود فعلاً -> نزود الكمية بالعدد المطلوب
+        cart.items[itemIndex].quantity += quantityToAdd;
       } else {
-        // 5. المنتج مش موجود -> نضيفه كعنصر جديد (والكمية هتكون 1 تلقائياً)
+        // 5. المنتج مش موجود -> نضيفه كعنصر جديد بالكمية المطلوبة
         cart.items.push({
           productId,
           price: product.price,
+          quantity: quantityToAdd,
         });
       }
     }
 
-    // 6. حفظ السلة (الـ Middleware هيحسب السعر الإجمالي هنا)
+    // 6. حفظ السلة
     await cart.save();
 
     res.status(200).json({
-      message: "Product added to cart",
+      message: "Cart updated successfully",
       cart,
     });
   } catch (error) {

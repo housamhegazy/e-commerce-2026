@@ -1,21 +1,51 @@
 import React from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { Link } from "react-router-dom";
-import { addToCart, removeFromCart, deleteItem, clearCart } from "../../Redux/products/cartSlice";
+// 👇 استيراد الـ action creators الخاصة بالسلة
+import {
+  addToCart,
+  removeFromCart,
+  deleteItem,
+  clearCart,
+} from "../../Redux/products/cartSlice";
+// 👇 استيراد الـ hook الخاص بجلب بيانات السلة
+import { useGetCartQuery } from "../../Redux/cart/cartApi.js";
+import { useNavigate } from "react-router-dom";
 
 const Cart = () => {
-  const { items, totalAmount } = useSelector((state) => state.products);
   const dispatch = useDispatch();
+  const user = useSelector((state) => state.auth.user);
+  
+  // 1. حل مشكلة الـ Destructure: بنحط قيم افتراضية عشان لو السلايس فاضي
+  const { items = [], totalAmount = 0 } = useSelector((state) => state.products || {});
 
-  if (items.length === 0) {
+  const { data: cartData, isLoading: isCartLoading } = useGetCartQuery(undefined, {
+    skip: !user,
+  });
+
+  // 2. توحيد مصدر البيانات (Safe Access)
+  // الـ API غالباً بترجع كائن جواه سلة: cartData.cart.items
+  const apiItems = cartData?.cart?.items || cartData?.items || [];
+  const apiTotal = cartData?.cart?.totalPrice || cartData?.totalAmount || 0;
+
+  const itemsToDisplay = user ? apiItems : items;
+  const totalAmountToDisplay = user ? apiTotal : totalAmount;
+
+  if (isCartLoading) {
     return (
       <div className="container py-5 text-center text-white">
-        <div className="py-5">
-          <i className="bi bi-cart-x display-1 text-secondary opacity-25"></i>
-          <h2 className="mt-4 fw-bold">Your cart is empty!</h2>
-          <p className="text-secondary">Looks like you haven't added anything yet.</p>
-          <Link to="/" className="btn btn-warning mt-3 px-4 fw-bold">Go Shopping</Link>
-        </div>
+        <div className="spinner-border text-warning" role="status"></div>
+        <h2 className="mt-4 fw-bold">Loading your cart...</h2>
+      </div>
+    );
+  }
+
+  if (itemsToDisplay.length === 0) {
+    return (
+      <div className="container py-5 text-center text-white">
+        <i className="bi bi-cart-x display-1 opacity-25"></i>
+        <h2 className="mt-4 fw-bold">Your cart is empty!</h2>
+        <Link to="/" className="btn btn-warning mt-3">Go Shopping</Link>
       </div>
     );
   }
@@ -23,66 +53,60 @@ const Cart = () => {
   return (
     <div className="container py-5 text-white">
       <h2 className="fw-bold mb-4">Shopping <span className="text-warning">Cart</span></h2>
-      
       <div className="row g-4">
-        {/* قائمة المنتجات */}
         <div className="col-lg-8">
-          {items.map((item,index) => (
-            <div key={index} className="card mb-3 border-0 shadow-sm" style={{ backgroundColor: "#2d3748" }}>
-              <div className="card-body p-3">
-                <div className="row align-items-center g-3">
-                  <div className="col-4 col-md-2 text-center">
-                    <img src={item.image} alt={item.title} className="img-fluid rounded-3" style={{ maxHeight: "80px" }} />
-                  </div>
-                  <div className="col-8 col-md-4">
-                    <h6 className="mb-1 text-white text-truncate">{item.title}</h6>
-                    <span className="text-info fw-bold">${item.price}</span>
-                  </div>
-                  <div className="col-6 col-md-3 d-flex justify-content-center">
-                    <div className="input-group input-group-sm" style={{ width: "100px" }}>
-                      <button className="btn btn-outline-secondary text-white" onClick={() => dispatch(removeFromCart(item.id))}>-</button>
-                      <span className="form-control bg-transparent text-white text-center border-secondary">{item.quantity}</span>
-                      <button className="btn btn-outline-secondary text-white" onClick={() => dispatch(addToCart({ ...item, quantity: 1 }))}>+</button>
+          {itemsToDisplay.map((item, index) => {
+            // 3. حل مشكلة الـ toFixed: بنجهز البيانات قبل الرندر
+            const currentId = item.productId?._id || item.productId || item.id;
+            const currentTitle = item.productId?.title || item.title || "Product";
+            const currentImage = item.productId?.images?.[0]?.url || item.image;
+            const currentPrice = item.price || 0;
+            const currentQty = item.quantity || 0;
+            const currentTotal = item.totalPrice || (currentPrice * currentQty);
+
+            return (
+              <div key={currentId || index} className="card mb-3 border-0" style={{ backgroundColor: "#2d3748" }}>
+                <div className="card-body p-3">
+                  <div className="row align-items-center">
+                    <div className="col-md-2">
+                      <img src={currentImage} className="img-fluid rounded" style={{ maxHeight: "80px" }} alt="" />
                     </div>
-                  </div>
-                  <div className="col-4 col-md-2 text-center">
-                    <span className="fw-bold">${item.totalPrice.toFixed(2)}</span>
-                  </div>
-                  <div className="col-2 col-md-1 text-end">
-                    <button className="btn btn-link text-danger p-0" onClick={() => dispatch(deleteItem(item.id))}>
-                      <i className="bi bi-trash3-fill"></i>
-                    </button>
+                    <div className="col-md-4">
+                      <h6 className="text-truncate">{currentTitle}</h6>
+                      <span className="text-info">${currentPrice}</span>
+                    </div>
+                    <div className="col-md-3">
+                      <div className="input-group input-group-sm">
+                        <button className="btn btn-outline-light" onClick={() => !user && dispatch(removeFromCart(currentId))}>-</button>
+                        <span className="form-control bg-transparent text-white text-center">{currentQty}</span>
+                        <button className="btn btn-outline-light" onClick={() => !user && dispatch(addToCart({ ...item, quantity: 1 }))}>+</button>
+                      </div>
+                    </div>
+                    <div className="col-md-2 text-center">
+                      {/* 👇 هنا ضمنا إن الرقم موجود دائماً قبل الـ toFixed */}
+                      <span className="fw-bold">${Number(currentTotal).toFixed(2)}</span>
+                    </div>
+                    <div className="col-md-1 text-end">
+                      <button className="btn text-danger" onClick={() => !user && dispatch(deleteItem(currentId))}>
+                        <i className="bi bi-trash3-fill"></i>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
-
-          <button className="btn btn-outline-danger btn-sm mt-3" onClick={() => dispatch(clearCart())}>
-            <i className="bi bi-trash me-2"></i>Clear Cart
-          </button>
+            );
+          })}
         </div>
 
         {/* ملخص الدفع */}
         <div className="col-lg-4">
-          <div className="card border-0 shadow-lg p-4 h-100" style={{ backgroundColor: "#1a202c", border: "1px solid rgba(255,255,255,0.1)" }}>
-            <h5 className="fw-bold mb-4 border-bottom border-secondary pb-3">Order Summary</h5>
-            <div className="d-flex justify-content-between mb-3 text-secondary">
-              <span>Subtotal</span>
-              <span>${totalAmount.toFixed(2)}</span>
+          <div className="card p-4" style={{ backgroundColor: "#1a202c" }}>
+            <h5 className="border-bottom pb-3">Order Summary</h5>
+            <div className="d-flex justify-content-between my-3">
+              <span>Total</span>
+              <span className="text-warning fs-5">${Number(totalAmountToDisplay).toFixed(2)}</span>
             </div>
-            <div className="d-flex justify-content-between mb-3 text-secondary">
-              <span>Shipping</span>
-              <span className="text-success">Free</span>
-            </div>
-            <hr className="border-secondary" />
-            <div className="d-flex justify-content-between mb-4">
-              <span className="fs-5 fw-bold">Total</span>
-              <span className="fs-5 fw-bold text-warning">${totalAmount.toFixed(2)}</span>
-            </div>
-            <button className="btn btn-warning btn-lg w-100 fw-bold py-3 shadow-sm">
-              Checkout
-            </button>
+            <button className="btn btn-warning w-100 fw-bold">Checkout</button>
           </div>
         </div>
       </div>

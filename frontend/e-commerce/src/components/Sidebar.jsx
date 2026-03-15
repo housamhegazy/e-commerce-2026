@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { useSignOutMutation } from "../Redux/user/userApi";
 import { clearAuthUser } from "../Redux/user/authSlice";
+import { useGetCartQuery } from "../Redux/cart/cartApi";
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
@@ -10,7 +11,10 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
   const [signOut] = useSignOutMutation();
   const dispatch = useDispatch();
   const navigate = useNavigate();
-
+const { data: cartData } = useGetCartQuery(undefined, {
+    skip: !user,
+  });
+  const cartItems = user ? cartData?.items || [] : items || [];
   const handleLogout = async () => {
     await signOut();
     dispatch(clearAuthUser());
@@ -54,7 +58,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             <li className="nav-item">
               <Link to="/cart" className="nav-link text-white d-flex justify-content-between align-items-center p-3 rounded bg-secondary bg-opacity-10" onClick={toggleSidebar}>
                 <span><i className="bi bi-cart3 me-3"></i>My Cart</span>
-                <span className="badge bg-warning text-dark">{items?.length || 0}</span>
+                <span className="badge bg-warning text-dark">{cartItems?.length || 0}</span>
               </Link>
             </li>
 

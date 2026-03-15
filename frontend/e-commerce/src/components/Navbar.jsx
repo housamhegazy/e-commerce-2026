@@ -2,16 +2,28 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 import Sidebar from "./Sidebar"; // تأكد من المسار الصحيح للسايدبار
-
+import { useGetCartQuery } from "../Redux/cart/cartApi";
 const Navbar = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { isAuthenticated, user } = useSelector((state) => state.auth);
-const { items } = useSelector((state) => state.products);
+  const { items } = useSelector((state) => state.products);
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
+  // جلب بيانات السلة من الـ API (لو المستخدم مسجل دخول)
+  const { data: cartData } = useGetCartQuery(undefined, {
+    skip: !user,
+  });
+  // لو المستخدم مسجل دخول، نستخدم بيانات السلة من الـ API، وإلا نستخدم البيانات من الـ state المحلي
+  const cartItems = user ? cartData?.items || [] : items || [];
 
   return (
     <>
-      <nav className="navbar navbar-expand-lg sticky-top shadow-sm" style={{ backgroundColor: "#1a202c", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+      <nav
+        className="navbar navbar-expand-lg sticky-top shadow-sm"
+        style={{
+          backgroundColor: "#1a202c",
+          borderBottom: "1px solid rgba(255,255,255,0.05)",
+        }}
+      >
         <div className="container">
           {/* 1. اللوجو */}
           <Link className="navbar-brand fw-bold fs-3 text-warning" to="/">
@@ -22,10 +34,17 @@ const { items } = useSelector((state) => state.products);
           <div className="collapse navbar-collapse d-none d-lg-block">
             <ul className="navbar-nav ms-auto mb-2 mb-lg-0 me-4">
               <li className="nav-item">
-                <Link className="nav-link text-white-50 hover-text-white" to="/">Home</Link>
+                <Link
+                  className="nav-link text-white-50 hover-text-white"
+                  to="/"
+                >
+                  Home
+                </Link>
               </li>
               <li className="nav-item">
-                <Link className="nav-link text-white-50" to="/shop">Shop</Link>
+                <Link className="nav-link text-white-50" to="/shop">
+                  Shop
+                </Link>
               </li>
             </ul>
           </div>
@@ -33,11 +52,17 @@ const { items } = useSelector((state) => state.products);
           {/* 3. أيقونات التحكم (سلة + منيو) */}
           <div className="d-flex align-items-center gap-3">
             {/* أيقونة السلة */}
-            <Link to="/cart" className="position-relative text-white border-0 bg-transparent">
+            <Link
+              to="/cart"
+              className="position-relative text-white border-0 bg-transparent"
+            >
               <i className="bi bi-cart3 fs-4"></i>
-              {items?.length > 0 && (
-                <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark" style={{ fontSize: "0.7rem" }}>
-                  {items.length}
+              {cartItems?.length > 0 && (
+                <span
+                  className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark"
+                  style={{ fontSize: "0.7rem" }}
+                >
+                  {cartItems.length}
                 </span>
               )}
             </Link>
@@ -50,8 +75,8 @@ const { items } = useSelector((state) => state.products);
             )}
 
             {/* زرار المنيو اللي بيفتح السايدبار */}
-            <button 
-              className="btn text-white p-2 ms-2 rounded-circle border-0" 
+            <button
+              className="btn text-white p-2 ms-2 rounded-circle border-0"
               style={{ backgroundColor: "rgba(255,255,255,0.05)" }}
               onClick={toggleSidebar}
             >

@@ -9,27 +9,50 @@ import {
   clearCart,
 } from "../../Redux/products/cartSlice";
 // 👇 استيراد الـ hook الخاص بجلب بيانات السلة
-import { useGetCartQuery } from "../../Redux/cart/cartApi.js";
-import { useNavigate } from "react-router-dom";
+import { useGetCartQuery,useUpdateCartMutation,useDeleteFromCartMutation } from "../../Redux/cart/cartApi.js";
 
 const Cart = () => {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
   
-  // 1. حل مشكلة الـ Destructure: بنحط قيم افتراضية عشان لو السلايس فاضي
+  // 1. جلب بيانات السلة من الـ API (لو المستخدم مش مسجل دخول)
   const { items = [], totalAmount = 0 } = useSelector((state) => state.products || {});
 
+  // 1. جلب بيانات السلة من الـ API (لو المستخدم مسجل دخول)
   const { data: cartData, isLoading: isCartLoading } = useGetCartQuery(undefined, {
     skip: !user,
   });
 
   // 2. توحيد مصدر البيانات (Safe Access)
   // الـ API غالباً بترجع كائن جواه سلة: cartData.cart.items
-  const apiItems = cartData?.cart?.items || cartData?.items || [];
-  const apiTotal = cartData?.cart?.totalPrice || cartData?.totalAmount || 0;
+  const apiItems = cartData?.items || [];
+  const apiTotal = cartData?.totalPrice || 0;
 
   const itemsToDisplay = user ? apiItems : items;
   const totalAmountToDisplay = user ? apiTotal : totalAmount;
+
+  // update cart mutation
+  const [updateCart] = useUpdateCartMutation();
+
+  const handleUpdateCart = (productId, quantity) => {
+    if (user) {
+      updateCart({ productId, quantity });
+    } else {
+      dispatch(addToCart({ productId, quantity }));
+    }
+  };
+
+  // delete from cart mutation
+  const [deleteFromCart] = useDeleteFromCartMutation();
+
+  const handleDeleteFromCart = (productId) => {
+    const idToSend = productId?._id || productId;
+    if (user) {
+      deleteFromCart(idToSend);
+    } else {
+      dispatch(deleteItem(idToSend));
+    }
+  };
 
   if (isCartLoading) {
     return (
@@ -57,7 +80,7 @@ const Cart = () => {
         <div className="col-lg-8">
           {itemsToDisplay.map((item, index) => {
             // 3. حل مشكلة الـ toFixed: بنجهز البيانات قبل الرندر
-            const currentId = item.productId?._id || item.productId || item.id;
+            const currentId = item.productId?._id || item.productId || item._id;
             const currentTitle = item.productId?.title || item.title || "Product";
             const currentImage = item.productId?.images?.[0]?.url || item.image;
             const currentPrice = item.price || 0;
@@ -77,9 +100,9 @@ const Cart = () => {
                     </div>
                     <div className="col-md-3">
                       <div className="input-group input-group-sm">
-                        <button className="btn btn-outline-light" onClick={() => !user && dispatch(removeFromCart(currentId))}>-</button>
+                        <button className="btn btn-outline-light" onClick={() => handleUpdateCart(currentId, currentQty - 1)}>-</button>
                         <span className="form-control bg-transparent text-white text-center">{currentQty}</span>
-                        <button className="btn btn-outline-light" onClick={() => !user && dispatch(addToCart({ ...item, quantity: 1 }))}>+</button>
+                        <button className="btn btn-outline-light" onClick={() => handleUpdateCart(currentId, currentQty + 1)}>+</button>
                       </div>
                     </div>
                     <div className="col-md-2 text-center">
@@ -87,7 +110,7 @@ const Cart = () => {
                       <span className="fw-bold">${Number(currentTotal).toFixed(2)}</span>
                     </div>
                     <div className="col-md-1 text-end">
-                      <button className="btn text-danger" onClick={() => !user && dispatch(deleteItem(currentId))}>
+                      <button className="btn text-danger" onClick={() => handleDeleteFromCart(currentId)}>
                         <i className="bi bi-trash3-fill"></i>
                       </button>
                     </div>
@@ -104,7 +127,7 @@ const Cart = () => {
             <h5 className="border-bottom pb-3">Order Summary</h5>
             <div className="d-flex justify-content-between my-3">
               <span>Total</span>
-              <span className="text-warning fs-5">${Number(totalAmountToDisplay).toFixed(2)}</span>
+              <span className="text-warning fs-5"> ${Number(totalAmountToDisplay).toFixed(2)} </span>
             </div>
             <button className="btn btn-warning w-100 fw-bold">Checkout</button>
           </div>

@@ -3,14 +3,21 @@ import { Link } from 'react-router-dom';
 import { useSelector } from "react-redux";
 import { useDispatch } from "react-redux";
 import { addToCart } from "../../Redux/products/cartSlice";
-
+import { useAddToCartMutation } from "../../Redux/cart/cartApi.js";
 const ProductCard = ({ product, onAddToCart }) => {
   const dispatch = useDispatch();
   const { title, price, images, averageRating, _id, stock } = product;
   const thumbnail = images[0]?.url || 'https://via.placeholder.com/300';
+  const { user } = useSelector((state) => state.auth);
+  const [addToCart] = useAddToCartMutation();
 
   const handleAddToCart = () => {
-      // بنجهز كائن جديد فيه بيانات المنتج + الكمية المختارة من الـ state المحلي
+    if (user) {
+      addToCart({
+        productId: _id,
+        quantity: 1
+      });
+    } else {
       dispatch(addToCart({
       id: _id,        // تأكد إنها _id زي ما إنت معرفها فوق
       title,
@@ -21,7 +28,8 @@ const ProductCard = ({ product, onAddToCart }) => {
       
       // اختياري: تنبيه بسيط لليوزر
       alert(`Added items to cart!`);
-    };
+    }
+  };
 
   return (
     <div className="col-md-3 col-sm-6 mb-4">

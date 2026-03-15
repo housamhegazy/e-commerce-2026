@@ -40,7 +40,7 @@ export const cartApi = createApi({
     }),
     deleteFromCart: builder.mutation({
       query: (productId) => ({
-        url: `/api/cart/remove-from-cart/${productId}`,
+        url: `/api/cart/delete-product/${productId}`,
         method: "DELETE",
       }),
       invalidatesTags: ["Cart"],
